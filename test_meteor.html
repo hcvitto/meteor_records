@@ -1,0 +1,136 @@
+<head>
+    <title>records</title>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+</body>
+
+<template name="ApplicationLayout">
+  <header>
+    <nav class="navbar navbar-inverse">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">Meteor app</a>
+            </div>
+            <div id="navbar" class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="/">info</a>
+                    </li>
+                    <li><a href="/inserisci-disco">inserimento dati</a>
+                    </li>
+                    <li><a href="/lista">lista</a>
+                    </li>
+                    <li><a href="/newsletter">ajax form</a>
+                    </li>
+                </ul>
+            </div>
+            <!--/.nav-collapse -->
+        </div>
+    </nav>
+  </header>
+  
+  <aside>
+    {{> yield "aside"}}
+  </aside>
+
+  <div class="container content">
+     {{> yield}}
+  </div>
+
+  <footer>
+    {{> yield "footer"}}
+  </footer>
+  <!--  JS  -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script></template>
+
+
+<template name="Aside">
+  Aside
+</template>
+
+<template name="Home">
+  Home
+  {{#contentFor "footer"}}
+  Home footer
+  {{/contentFor}}
+</template>
+
+<template name="Lista">
+    <ul class="dischiList">
+        {{#each records}}
+        <li>
+            <strong>Autore:</strong> <a href="{{autore.sito}}">{{autore.nome}}</a><br>
+            <strong>Titolo:</strong> {{disco.titolo}} ({{disco.anno}})<br>
+            <strong>Genere:</strong> {{disco.genere}}<br>
+            <strong>Label:</strong> <a href="{{label.sito}}">{{label.nome}}</a><br>
+            <a class="btn btn-default cancellaBtn" href="{{_id}}" role="button">Cancella</a>
+            <a class="btn btn-default modificaBtn" href="/inserisci-disco/{{_id}}" role="button">Modifica</a>
+        </li>
+        {{/each}}
+    </ul>
+    {{#contentFor "footer"}}
+    Lista footer
+    {{/contentFor}}
+</template>
+
+<template name="Salva-disco">
+    Salva disco
+</template>
+
+<template name="Salvato">
+    Disco salvato
+</template>
+
+<template name="InserisciDisco">
+    <a class="btn btn-default" href="/" role="button" style="float: right;">Chiudi</a>
+    <form action="/salva-disco" method="POST" id="discoForm">
+        <input type="hidden" name="id" id="id" value="{{id}}">
+        
+    <fieldset>
+        <legend>Autore</legend>
+        <div class="form-group">
+            <label for="autore">Nome</label>
+            <input type="text" name="autore" value="{{autore.nome}}" class="form-control" id="autore" required>
+        </div>
+        <div class="form-group">
+            <label for="sitoAutore">Sito</label>
+            <input type="text" name="sitoAutore" value="{{autore.sito}}" class="form-control" id="sitoAutore">
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>Disco</legend>
+        <div class="form-group">
+            <label for="titolo">Titolo</label>
+            <input type="text" name="titolo" value="{{disco.titolo}}" class="form-control" id="titolo" required="">
+        </div>
+        <div class="form-group">
+            <label for="label">Label</label>
+            <input type="text" name="label" value="{{label.nome}}" class="form-control" id="label">
+        </div>
+        <div class="form-group">
+            <label for="sitoLabel">Sito label</label>
+            <input type="text" name="sitoLabel" value="{{label.sito}}" class="form-control" id="sitoLabel">
+        </div>
+        <div class="form-group">
+            <label for="anno">Anno di produzione</label>
+            <input type="date" name="anno" value="{{disco.anno}}" class="form-control" id="anno">
+        </div>
+        <div class="form-group">
+            <label for="genere">Genere</label>
+            <input type="text" name="genere" value="{{disco.genere}}" class="form-control" id="genere">
+        </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+</template>
