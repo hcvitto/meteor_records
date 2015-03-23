@@ -1,0 +1,46 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+ul, li {
+    list-style: none;
+    margin: 0;
+}
+input[type="text"],
+input[type="date"],
+input[type="url"] {
+    height: 24px;
+}
+header {
+    background-color:  black;
+}
+header a {
+    color: #fff;
+}
+#loginBoxBtn {
+    float: right;
+    line-height: 50px;
+}
+#loginBoxBtn a {
+    text-decoration:  none;
+}
+aside {
+    width: 240px;
+    float:  right;
+}
+.container {
+    width:  100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+#wrapper {
+    overflow: hidden;
+}
+.content {
+    width: 480px;
+    margin: 0 auto;
+    float: left;
+}
+.dischiList li {
+    margin-bottom:  10px;
+}
