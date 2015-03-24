@@ -1,21 +1,80 @@
 records = new Mongo.Collection('Records');
-records.allow({
-    insert: function(userId, doc) {
-        // only allow posting if you are logged in
-        return !! userId;
-    },   
-    update: function(userId, doc) {
-        // only allow posting if you are logged in
-        return !! userId;
-    },     
-    remove: function(userId, doc) {
-        // only allow remove posting if you are logged in
-        return !! userId;
+
+Meteor.methods({
+    insertRec: function (recAttributes) {
+        var user = Meteor.user(),
+            recExist = records.findOne({
+                "autore.nome": recAttributes.autore.nome,
+                "disco.titolo": recAttributes.disco.titolo
+            });
+        // controllo se l'utente è loggato
+        if (!user)
+            throw new Meteor.Error(401, "Non sei loggato");
+        
+        // controllo se è stato già inserito
+        if (recExist) {
+            throw new Meteor.Error(302, 'Disco esiste', recExist._id);
+        }
+        // aggiungo alcuni dati di default al record
+        var rec = _.extend(recAttributes, {
+            userId: user._id,
+            author: user.username,
+            submitted: new Date().getTime()
+        });
+        // registro il record
+        var id = records.insert(rec, function(err, id) {
+            if (err) console.log("Errore nell'insert");
+        });
+        return id;
+    },
+    updateRec: function (recAttributes, id) {
+        var user = Meteor.user(),
+            recExist = records.findOne(id);
+        // controllo se l'utente è loggato
+        if (!user)
+            throw new Meteor.Error(401, "Non sei loggato");
+        
+        // controllo se il record esiste
+        if (!recExist)
+            throw new Meteor.Error(401, "Non esiste");
+        
+        // modifico alcuni dati di default al record
+        var rec = _.extend(recAttributes, {
+            userId: user._id,
+            author: user.username,
+            submitted: new Date().getTime()
+        });
+        records.update(id, { $set: rec }, function(err, n) {
+            if (err) console.log("Errore nell'update");
+        });
+    },
+    deleteRec: function (id) {
+        var user = Meteor.user();
+        // controllo se l'utente è loggato
+        if (!user)
+            throw new Meteor.Error(401, "Non sei loggato");
+
+        records.remove(id, function(err) {
+            if (err) console.log("Errore nel delete");
+        });
     }
 });
 
-var requireLogin = function(pause) {
-    if (! Meteor.user()) {
+records.allow({
+    /*insert: function (userId, doc) {
+        // only allow posting if you are logged in
+        return !!userId;
+    },*/
+    update: function (userId, doc) {
+        return !!userId;
+    }/*,
+    remove: function (userId, doc) {
+        return !!userId;
+    }*/
+});
+
+var requireLogin = function (pause) {
+    if (!Meteor.user()) {
         if (Meteor.loggingIn()) {
             this.render(this.loadingTemplate);
         } else {
@@ -30,11 +89,19 @@ var requireLogin = function(pause) {
 Router.configure({
     layoutTemplate: 'ApplicationLayout',
     loadingTemplate: 'Loading',
-    waitOn: function() { return Meteor.subscribe('records'); }
+    waitOn: function () {
+        return Meteor.subscribe('records');
+    }
 });
 
 Router.onBeforeAction('loading');
-Router.onBeforeAction(requireLogin, {only: 'InserisciDisco'});
+Router.onBeforeAction(requireLogin, {
+    only: 'InserisciDisco'
+});
+/*Router.onBeforeAction(function() {
+    clearErrors();
+    this.next();
+});*/
 
 Router.route('/', {
     name: 'home',
@@ -76,8 +143,17 @@ Router.route('/inserisci-disco/:_id?', function () {
 if (Meteor.isClient) {
     Meteor.subscribe('records');
     
+    Errors = new Meteor.Collection(null);
+    throwError = function(message) {
+        Errors.insert({message: message, seen: true})
+    }
+    clearErrors = function() {
+        Errors.remove({seen: true})
+    }
     Template.InserisciDisco.events({
         'submit form': function (event, template) {
+            event.preventDefault();
+            var id = (this._id) ? this._id : '';
             var $form = $(event.target);
             var record = {
                 autore: {
@@ -86,31 +162,31 @@ if (Meteor.isClient) {
                 },
                 disco: {
                     titolo: $form.find('#titolo').val(),
-                    genere: $form.find('#titolo').val(),
+                    genere: $form.find('#genere').val(),
                     anno: $form.find('#anno').val(),
-                    copertina: $form.find('#copertina').val()
+                    votes:  $form.find('#votes').val()*1
                 },
                 label: {
                     nome: $form.find('#label').val(),
                     sito: $form.find('#sitoLabel').val()
                 }
             }
-            if ($form.find('#id').val()) {
-                var id = records.findOne($form.find('#id').val());
-                records.update({
-                    _id: $form.find('#id').val()
-                }, {
-                    $set: record
-                }, function (err, res) {
+            if (id) {
+                Meteor.call('updateRec', record, id, function (err) {
                     if (err) console.log(err);
-                    Flash.success('top', 'Updated', 5000);
+                    //Flash.success('top', 'Updated', 5000);
                     Router.go('lista');
                 });
             } else {
-                records.insert(record, function (err, res) {
-                    if (err) console.log(err);
-                    Flash.success('top', 'Inserted', 5000);
-                    Router.go('lista');
+                Meteor.call('insertRec', record, function (err, id) {
+                    if (err) {
+                        throwError(err.reason);
+                        if (err.error==302) Router.go('/inserisci-disco/' + err.details);
+                    } else {
+                        throwError('Salvato');
+                        //Flash.success('top', 'Inserted', 5000);
+                        Router.go('/inserisci-disco/' + err.details);
+                    }
                 });
             }
             return false;
@@ -118,6 +194,7 @@ if (Meteor.isClient) {
     });
     Template.Lista.events({
         'click .plusBtn': function (event, template) {
+            event.preventDefault();
             var $btn = $(event.target);
             records.update({
                 _id: $btn.data('id')
@@ -130,16 +207,11 @@ if (Meteor.isClient) {
             });
             return false;
         },
-        'click .modificaBtn': function (event, template) {
-            var $btn = $(event.target);
-            Router.go($btn.attr('href'));
-            return false;
-        },
         'click .cancellaBtn': function (event, template) {
             if (confirm('Sei sicuro?')) {
-                var $btn = $(event.target);
-                records.remove($btn.attr('href'), function (err, res) {
+                Meteor.call('deleteRec', this._id, function (err, res) {
                     if (err) console.log(err);
+                    //Flash.success('top', 'Deleted', 5000);
                     Router.go('lista');
                 });
             }
@@ -147,18 +219,40 @@ if (Meteor.isClient) {
         }
     });
     
-    Template.Lista.helpers({
-        records: function() {
-            return records.find();
+    Template.errors.helpers({
+        errors: function() {
+            return Errors.find();
         }
-    });    
+    });
+    Template.error.rendered = function() {
+        var error = this.data;
+        Meteor.defer(function() {
+            Errors.update(error._id, {$set: {seen: true}});
+        });
+    };    
+    Template.Lista.helpers({
+        records: function () {
+            return records.find({}, {
+                sort: {
+                    "autore.nome": 1
+                }
+            });
+        }
+    });
     Template.Voted.helpers({
-        records: function() {
-            return records.find({}, { sort: { "disco.votes": -1 } , limit: 2 });
+        records: function () {
+            return records.find({}, {
+                sort: {
+                    "disco.votes": -1
+                },
+                limit: 2
+            });
         }
     });
 
-    Accounts.ui.config({ passwordSignupFields: 'USERNAME_ONLY' });
+    Accounts.ui.config({
+        passwordSignupFields: 'USERNAME_ONLY'
+    });
 }
 
 if (Meteor.isServer) {
@@ -166,6 +260,6 @@ if (Meteor.isServer) {
         // code to run on server at startup
     });
     Meteor.publish('records', function () {
-        return records.find({}, { sort: { "autore.nome": 1 } });
+        return records.find();
     });
 }

@@ -1,6 +1,6 @@
 <head>
     <title>records</title>
-    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+
     <link href="/test_meteor.css" rel="stylesheet">
 </head>
 
@@ -10,8 +10,21 @@
 
 </body>
 
+<template name="errors">
+    <div class="errors row-fluid">
+        {{#each errors}}
+            {{> error}}
+        {{/each}}
+    </div>
+</template>
+<template name="error">
+  <div class="alert alert-error">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{message}}
+  </div>
+</template>
 <template name="Loading">
-    {{> spinner}} 
+    {{> spinner}}
 </template>
 
 <template name="accessDenied">
@@ -22,8 +35,8 @@
     <div id="wrapper">
         <header>
             <div class="container">
-                 <div id="navbar" class="collapse navbar-collapse">
-                    <div id="loginBoxBtn"  style="float: right">{{> loginButtons}}</div>
+                <div id="navbar" class="navbar-collapse">
+                    <div id="loginBoxBtn" style="float: right">{{> loginButtons}}</div>
                     <a class="navbar-brand" href="{{pathFor 'home'}}">Meteor app</a>
                     <ul class="nav navbar-nav">
                         <li><a href="{{pathFor 'home'}}">info</a>
@@ -38,12 +51,13 @@
                         </li>
                     </ul>
                 </div>
-                
+
                 <!--/.nav-collapse -->
             </div>
         </header>
         <div class="container">
             <div class=" content">
+                {{> errors}}
                 {{> yield}}
             </div>
             <aside>
@@ -69,8 +83,7 @@
             <strong>Autore:</strong> <a href="{{autore.sito}}">{{autore.nome}}</a>
             <br>
             <strong>Titolo:</strong> {{disco.titolo}}
-            <br>
-            Voti: {{disco.votes}}
+            <br> Voti: {{disco.votes}}
         </li>
         {{/each}}
     </ul>
@@ -81,23 +94,20 @@
 </template>
 
 <template name="Lista">
-    <h2>Lista</h2>
-    {{flash top}}
+    <h2>Lista</h2> {{flash top}}
     <ul class="dischiList">
         {{#each records}}
         <li>
             <strong>Autore:</strong> <a href="{{autore.sito}}">{{autore.nome}}</a>
             <br>
-            <strong>Titolo:</strong> {{disco.titolo}} ({{disco.anno}}) (voti: {{disco.votes}}) - <a class="btn btn-small plusBtn" href="/vota-disco/{{_id}}" data-id="{{_id}}" role="button">Like</a>
+            <strong>Titolo:</strong> {{disco.titolo}} {{#if disco.anno}}({{disco.anno}}){{/if}} {{#if disco.votes}}<strong>Voti:</strong> {{disco.votes}}{{/if}} - <a class="btn btn-small plusBtn" href="/vota-disco/{{_id}}" data-id="{{_id}}" role="button">Like</a>
             <br>
             <strong>Genere:</strong> {{disco.genere}}
             <br>
             <strong>Label:</strong> <a href="{{label.sito}}">{{label.nome}}</a>
-            <br>
-            {{#if currentUser}}
+            <br> {{#if currentUser}}
             <a class="btn btn-small cancellaBtn" href="{{_id}}" role="button">Cancella</a>
-            <a class="btn btn-small modificaBtn" href="{{pathFor 'InserisciDisco'}}" role="button">Modifica</a>
-            {{/if}}
+            <a class="btn btn-small modificaBtn" href="{{pathFor 'InserisciDisco'}}" role="button">Modifica</a> {{/if}}
         </li>
         {{/each}}
     </ul>
@@ -113,9 +123,10 @@
 </template>
 
 <template name="InserisciDisco">
-    <a class="btn btn-default" href="/" role="button" style="float: right;">Chiudi</a>
+    <a class="btn btn-small btn-default" href="{{pathFor 'lista'}}" role="button" style="float: right;">Chiudi</a>
     <form action="/salva-disco" method="POST" id="discoForm">
         <input type="hidden" name="id" id="id" value="{{_id}}">
+        <input type="hidden" name="votes" id="votes" value="{{disco.votes}}">
 
         <fieldset>
             <legend>Autore</legend>
@@ -129,7 +140,7 @@
             </div>
         </fieldset>
         <fieldset>
-            <legend>Disco</legend>
+            <legend>Disco {{#if disco.votes}}(voti: {{disco.votes}}){{/if}}</legend>
             <div class="form-group">
                 <label for="titolo">Titolo</label>
                 <input type="text" name="titolo" value="{{disco.titolo}}" class="form-control" id="titolo" required="">
