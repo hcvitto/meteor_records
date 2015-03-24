@@ -1,4 +1,5 @@
 records = new Mongo.Collection('Records');
+comments = new Mongo.Collection('Comments');
 
 Meteor.methods({
     insertRec: function (recAttributes) {
@@ -72,7 +73,12 @@ records.allow({
         return !!userId;
     }*/
 });
-
+comments.allow({
+    insert: function (userId, doc) {
+        // only allow posting if you are logged in
+        return !!userId;
+    }
+});
 var requireLogin = function (pause) {
     if (!Meteor.user()) {
         if (Meteor.loggingIn()) {
@@ -90,7 +96,7 @@ Router.configure({
     layoutTemplate: 'ApplicationLayout',
     loadingTemplate: 'Loading',
     waitOn: function () {
-        return Meteor.subscribe('records');
+        return [Meteor.subscribe('records'), Meteor.subscribe('comments')];
     }
 });
 
@@ -123,6 +129,19 @@ Router.route('/lista', {
     }
 });
 
+Router.route('/commenti/:_id', function () {
+    if (!this.params._id) {
+        Flash.warning('top', 'Record non esistente', 5000);
+    } else {
+        var record = records.findOne({ _id: this.params._id });
+    }
+    this.render('Commenti', {
+        data: record
+    });
+}, {
+    name: 'commenti'
+});
+
 Router.route('/inserisci-disco/:_id?', function () {
     if (this.params._id) {
         var record = records.findOne(this.params._id);
@@ -139,9 +158,14 @@ Router.route('/inserisci-disco/:_id?', function () {
     name: 'InserisciDisco'
 });
 
+UI.registerHelper('formatTime', function(context, options) {
+    if(context)
+        return moment(context).format('MM/DD/YYYY, hh:mm');
+});
 
 if (Meteor.isClient) {
     Meteor.subscribe('records');
+    Meteor.subscribe('comments');
     
     /*Errors = new Meteor.Collection(null);
     throwError = function(message) {
@@ -213,18 +237,27 @@ if (Meteor.isClient) {
             return false;
         }
     });
-    
-    /*Template.errors.helpers({
-        errors: function() {
-            return Errors.find();
+    Template.Commenti.events({
+        'submit form': function (event, template) {
+            event.preventDefault();
+            var now = new Date();
+            var $form = $(event.target);
+            var comment = {
+                record: this._id,
+                userId: Meteor.user()._id,
+                autore: Meteor.user().username,
+                data: now,
+                testo: $form.find('#text').val()
+            }
+            comments.insert(comment, function(err, id) {
+                if (err) console.log(err);
+                Flash.success('top', 'Commento inserito', 5000);
+                template.$('textarea').val('');
+                //Router.go('lista');
+            });
+            return false;
         }
-    });
-    Template.error.rendered = function() {
-        var error = this.data;
-        Meteor.defer(function() {
-            Errors.update(error._id, {$set: {seen: true}});
-        });
-    };  */  
+    });   
     Template.Lista.helpers({
         records: function () {
             return records.find({}, {
@@ -244,7 +277,20 @@ if (Meteor.isClient) {
             });
         }
     });
-
+    Template.Commenti.helpers({
+        comments: function () {
+            return comments.find({record: this._id}, {
+                sort: {
+                    data: -1
+                }
+            });
+        }
+    }); 
+    /*Template.Commento.helpers({
+        dataUmana: function() {
+            return moment(this.data).format('MM/DD/YYYY, HH:MM');
+        }
+    }); */    
     Accounts.ui.config({
         passwordSignupFields: 'USERNAME_ONLY'
     });
@@ -256,5 +302,8 @@ if (Meteor.isServer) {
     });
     Meteor.publish('records', function () {
         return records.find();
+    });
+    Meteor.publish('comments', function () {
+        return comments.find();
     });
 }

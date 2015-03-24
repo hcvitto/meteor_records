@@ -94,7 +94,7 @@
 </template>
 
 <template name="Lista">
-    <h2>Lista</h2> {{flash top}}
+    <h2>Lista</h2>
     <ul class="dischiList">
         {{#each records}}
         <li>
@@ -105,15 +105,53 @@
             <strong>Genere:</strong> {{disco.genere}}
             <br>
             <strong>Label:</strong> <a href="{{label.sito}}">{{label.nome}}</a>
-            <br> {{#if currentUser}}
+            <br>
+            {{#if currentUser}}
             <a class="btn btn-small cancellaBtn" href="{{_id}}" role="button">Cancella</a>
-            <a class="btn btn-small modificaBtn" href="{{pathFor 'InserisciDisco'}}" role="button">Modifica</a> {{/if}}
+            <a class="btn btn-small modificaBtn" href="{{pathFor 'InserisciDisco'}}" role="button">Modifica</a>
+            {{/if}}
+            <a class="btn btn-small commentaBtn" href="{{pathFor 'commenti'}}" role="button">Commenti</a>
         </li>
         {{/each}}
     </ul>
     {{#contentFor "footer"}} Lista footer {{/contentFor}}
 </template>
 
+<template name="Commenti">
+    <h5>Commenti per:</h5>
+    <h4>{{autore.nome}} - {{disco.titolo}}</h4>
+    <ul class="commentiList">
+    {{#each comments}}
+        {{> Commento}}
+    {{/each}}
+    </ul>
+    {{#if currentUser}}
+        {{> InserisciCommento}}
+    {{else}}
+        <p>Loggati per commentare</p>
+    {{/if}}
+    
+    {{#contentFor "footer"}} Commenti footer {{/contentFor}}
+</template>
+<template name="Commento">
+    <li>
+        <strong>{{autore}}</strong>: {{testo}}
+        <div><em>on</em> {{formatTime data}}</div>
+    </li>
+</template>
+<template name="InserisciCommento">
+    <form action="/salva-commento" method="POST" id="commentoForm">
+        <input type="hidden" name="id" id="id" value="{{_id}}">
+
+        <fieldset>
+            <div class="form-group">
+                <label for="text">Commenta</label>
+                <textarea name="text" class="form-control" id="text" required=""></textarea>
+            </div>
+        </fieldset>
+        <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+</template>
 <template name="Salva-disco">
     Salva disco
 </template>

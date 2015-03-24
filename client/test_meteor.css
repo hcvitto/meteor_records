@@ -71,3 +71,12 @@ aside {
 .dischiList li {
     margin-bottom: 10px;
 }
+.commentiList li {
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 15px;
+}
+.commentiList li div {
+    font-size:  11px;
+    text-align:  right;
+}
