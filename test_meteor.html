@@ -10,7 +10,7 @@
 
 </body>
 
-<template name="errors">
+<!--<template name="errors">
     <div class="errors row-fluid">
         {{#each errors}}
             {{> error}}
@@ -22,7 +22,7 @@
     <button type="button" class="close" data-dismiss="alert">&times;</button>
     {{message}}
   </div>
-</template>
+</template>-->
 <template name="Loading">
     {{> spinner}}
 </template>
@@ -57,7 +57,7 @@
         </header>
         <div class="container">
             <div class=" content">
-                {{> errors}}
+                {{flash 'top'}}
                 {{> yield}}
             </div>
             <aside>

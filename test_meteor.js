@@ -143,13 +143,13 @@ Router.route('/inserisci-disco/:_id?', function () {
 if (Meteor.isClient) {
     Meteor.subscribe('records');
     
-    Errors = new Meteor.Collection(null);
+    /*Errors = new Meteor.Collection(null);
     throwError = function(message) {
         Errors.insert({message: message, seen: true})
     }
     clearErrors = function() {
         Errors.remove({seen: true})
-    }
+    }*/
     Template.InserisciDisco.events({
         'submit form': function (event, template) {
             event.preventDefault();
@@ -174,19 +174,14 @@ if (Meteor.isClient) {
             if (id) {
                 Meteor.call('updateRec', record, id, function (err) {
                     if (err) console.log(err);
-                    //Flash.success('top', 'Updated', 5000);
-                    Router.go('lista');
+                    Flash.success('top', 'Updated', 5000);
+                    //Router.go('lista');
                 });
             } else {
                 Meteor.call('insertRec', record, function (err, id) {
-                    if (err) {
-                        throwError(err.reason);
-                        if (err.error==302) Router.go('/inserisci-disco/' + err.details);
-                    } else {
-                        throwError('Salvato');
-                        //Flash.success('top', 'Inserted', 5000);
-                        Router.go('/inserisci-disco/' + err.details);
-                    }
+                    if (err) console.log(err);
+                    Flash.success('top', 'Inserted', 5000);
+                    //Router.go('lista');
                 });
             }
             return false;
@@ -211,15 +206,15 @@ if (Meteor.isClient) {
             if (confirm('Sei sicuro?')) {
                 Meteor.call('deleteRec', this._id, function (err, res) {
                     if (err) console.log(err);
-                    //Flash.success('top', 'Deleted', 5000);
-                    Router.go('lista');
+                    Flash.success('top', 'Deleted', 5000);
+                    //Router.go('lista');
                 });
             }
             return false;
         }
     });
     
-    Template.errors.helpers({
+    /*Template.errors.helpers({
         errors: function() {
             return Errors.find();
         }
@@ -229,7 +224,7 @@ if (Meteor.isClient) {
         Meteor.defer(function() {
             Errors.update(error._id, {$set: {seen: true}});
         });
-    };    
+    };  */  
     Template.Lista.helpers({
         records: function () {
             return records.find({}, {
