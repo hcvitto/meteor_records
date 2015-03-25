@@ -335,11 +335,11 @@ if (Meteor.isClient) {
             });
         }*/
         nonVotato: function (voters, id) {
-            ///console.log(_.indexOf(voters, id));
-            //console.log(_.indexOf(voters, id));
-            //console.log(_.indexOf(voters, id));
-            if (_.indexOf(voters, Meteor.user()._id)==-1)
-                 return new Spacebars.SafeString(' - <a class="btn btn-small plusBtn" href="/vota-disco/' + id + '" data-id="' + id + '"     role="button">Like</a>');
+            var user = Meteor.user();
+            if (user) {
+                if (_.indexOf(voters, Meteor.user()._id)==-1)
+                    return new Spacebars.SafeString(' - <a class="btn btn-small plusBtn" href="/vota-disco/' + id + '" data-id="' + id + '"     role="button">Like</a>');
+            }
         }
     });
     Template.Voted.helpers({
