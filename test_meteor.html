@@ -114,6 +114,9 @@
         </li>
         {{/each}}
     </ul>
+    {{#if nextPath}}
+      <a class="load-more" href="{{nextPath}}">Load more</a>
+    {{/if}}
     {{#contentFor "footer"}} Lista footer {{/contentFor}}
 </template>
 
@@ -135,7 +138,7 @@
 </template>
 <template name="Commento">
     <li>
-        <strong>{{autore}}</strong>: {{testo}}
+        <strong><a href="user/{{_idAutore}}">{{autore}}</a></strong>: {{testo}}
         <div><em>on</em> {{formatTime data}}</div>
     </li>
 </template>

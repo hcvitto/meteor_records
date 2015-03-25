@@ -23,10 +23,9 @@ Meteor.methods({
             submitted: new Date().getTime()
         });
         // registro il record
-        var id = records.insert(rec, function(err, id) {
+        return records.insert(rec, function(err, id) {
             if (err) console.log("Errore nell'insert");
         });
-        return id;
     },
     updateRec: function (recAttributes, id) {
         var user = Meteor.user(),
@@ -57,6 +56,23 @@ Meteor.methods({
 
         records.remove(id, function(err) {
             if (err) console.log("Errore nel delete");
+        });
+    },
+    insertComment: function (cmtAttributes) {
+        var user = Meteor.user();
+        // controllo se l'utente è loggato
+        if (!user)
+            throw new Meteor.Error(401, "Non sei loggato");
+
+        // aggiungo alcuni dati di default al record
+        var cmt = _.extend(cmtAttributes, {
+            userId: user._id,
+            autore: user.username,
+            data: new Date().getTime()
+        });
+        // registro il record
+        return comments.insert(cmt, function(err, id) {
+            if (err) console.log("Errore nell'insert del commento");
         });
     }
 });
@@ -94,10 +110,10 @@ var requireLogin = function (pause) {
 
 Router.configure({
     layoutTemplate: 'ApplicationLayout',
-    loadingTemplate: 'Loading',
+    loadingTemplate: 'Loading'/*,
     waitOn: function () {
-        return [Meteor.subscribe('records'), Meteor.subscribe('comments')];
-    }
+        return Meteor.subscribe('records'); // la spostiamo nella route per la paginazione
+    }*/
 });
 
 Router.onBeforeAction('loading');
@@ -109,6 +125,31 @@ Router.onBeforeAction(requireLogin, {
     this.next();
 });*/
 
+ListaController = RouteController.extend({
+    template: 'Lista',
+    pageIncrement: 3,
+    limit: function() {
+        return parseInt(this.params.recs) || this.pageIncrement;
+    },
+    findOptions: function() {
+        return {sort: {submitted: -1}, limit: this.limit()};
+    },
+    waitOn: function() {
+        return Meteor.subscribe('records', this.findOptions());
+    },
+    records: function() {
+        return records.find({}, this.findOptions());
+    },
+    data: function() {
+        var hasMore = this.records().count() === this.limit();
+        var nextPath = this.route.path({ recs: this.limit() + this.pageIncrement });
+        return {
+            records: this.records(),
+            nextPath: hasMore ? nextPath : null
+        };
+    } 
+});
+
 Router.route('/', {
     name: 'home',
     template: 'Home',
@@ -119,9 +160,19 @@ Router.route('/', {
     }
 });
 
-Router.route('/lista', {
+Router.route('/lista/:recs?', {
     name: 'lista',
-    //template: 'Lista',
+    controller: ListaController,
+    /*waitOn: function() {
+        var limit = parseInt(this.params.recs) || 5;
+        return Meteor.subscribe('records', { sort: {"autore.nome": -1}, limit: limit });
+    },
+    data: function() {
+        var limit = parseInt(this.params.recs) || 5;
+        return {
+            records: records.find({}, { sort: {"autore.nome": -1}, limit: limit})
+        };
+    },*/
     yieldRegions: {
         'aside': {
             to: 'lista aside'
@@ -139,7 +190,10 @@ Router.route('/commenti/:_id', function () {
         data: record
     });
 }, {
-    name: 'commenti'
+    name: 'commenti',
+    waitOn: function() {
+        return Meteor.subscribe('comments', this.params._id);
+    }
 });
 
 Router.route('/inserisci-disco/:_id?', function () {
@@ -155,7 +209,8 @@ Router.route('/inserisci-disco/:_id?', function () {
         to: 'aside inserisci'
     });*/
 }, {
-    name: 'InserisciDisco'
+    name: 'InserisciDisco',
+    disableProgress: true
 });
 
 UI.registerHelper('formatTime', function(context, options) {
@@ -165,7 +220,7 @@ UI.registerHelper('formatTime', function(context, options) {
 
 if (Meteor.isClient) {
     Meteor.subscribe('records');
-    Meteor.subscribe('comments');
+    //Meteor.subscribe('comments'); la sposto nella route
     
     /*Errors = new Meteor.Collection(null);
     throwError = function(message) {
@@ -188,7 +243,7 @@ if (Meteor.isClient) {
                     titolo: $form.find('#titolo').val(),
                     genere: $form.find('#genere').val(),
                     anno: $form.find('#anno').val(),
-                    votes:  $form.find('#votes').val()*1
+                    votes: $form.find('#votes').val()*1
                 },
                 label: {
                     nome: $form.find('#label').val(),
@@ -230,8 +285,8 @@ if (Meteor.isClient) {
             if (confirm('Sei sicuro?')) {
                 Meteor.call('deleteRec', this._id, function (err, res) {
                     if (err) console.log(err);
-                    Flash.success('top', 'Deleted', 5000);
                     //Router.go('lista');
+                    Flash.success('top', 'Deleted', 5000);
                 });
             }
             return false;
@@ -244,21 +299,17 @@ if (Meteor.isClient) {
             var $form = $(event.target);
             var comment = {
                 record: this._id,
-                userId: Meteor.user()._id,
-                autore: Meteor.user().username,
-                data: now,
                 testo: $form.find('#text').val()
             }
-            comments.insert(comment, function(err, id) {
+            Meteor.call('insertComment', comment, function(err, id) {
                 if (err) console.log(err);
                 Flash.success('top', 'Commento inserito', 5000);
                 template.$('textarea').val('');
-                //Router.go('lista');
             });
             return false;
         }
     });   
-    Template.Lista.helpers({
+    /*Template.Lista.helpers({ // eliminato perchè spostato nella route per la paginazione
         records: function () {
             return records.find({}, {
                 sort: {
@@ -266,7 +317,7 @@ if (Meteor.isClient) {
                 }
             });
         }
-    });
+    });*/
     Template.Voted.helpers({
         records: function () {
             return records.find({}, {
@@ -300,8 +351,8 @@ if (Meteor.isServer) {
     Meteor.startup(function () {
         // code to run on server at startup
     });
-    Meteor.publish('records', function () {
-        return records.find();
+    Meteor.publish('records', function (options) {
+        return records.find({}, options);
     });
     Meteor.publish('comments', function () {
         return comments.find();
