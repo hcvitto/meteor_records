@@ -334,11 +334,11 @@ if (Meteor.isClient) {
                 }
             });
         }*/
-        nonVotato: function (voters, id) {
+        nonVotato: function () {
             var user = Meteor.user();
             if (user) {
-                if (_.indexOf(voters, Meteor.user()._id)==-1)
-                    return new Spacebars.SafeString(' - <a class="btn btn-small plusBtn" href="/vota-disco/' + id + '" data-id="' + id + '"     role="button">Like</a>');
+                if (_.indexOf(this.upvoters, user._id)==-1)
+                    return new Spacebars.SafeString(' - <a class="btn btn-small plusBtn" href="/vota-disco/' + this._id + '" data-id="' + this._id + '"     role="button">Like</a>');
             }
         }
     });
