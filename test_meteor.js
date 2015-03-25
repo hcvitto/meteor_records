@@ -20,7 +20,8 @@ Meteor.methods({
         var rec = _.extend(recAttributes, {
             userId: user._id,
             author: user.username,
-            submitted: new Date().getTime()
+            submitted: new Date().getTime(),
+            upvoters: []
         });
         // registro il record
         return records.insert(rec, function(err, id) {
@@ -53,9 +54,22 @@ Meteor.methods({
         // controllo se l'utente è loggato
         if (!user)
             throw new Meteor.Error(401, "Non sei loggato");
-
         records.remove(id, function(err) {
             if (err) console.log("Errore nel delete");
+        });
+    },
+    voteRec: function(id) {
+        var user = Meteor.user(),
+            recExist = records.findOne(id);
+        if (!user)
+            throw new Meteor.Error(401, "Non sei loggato");
+        if (!recExist)
+            throw new Meteor.Error(401, "Non esiste");
+        if (_.include(recExist.upvoters, user._id))
+            throw new Meteor.Error(422, 'Already upvoted this post');
+        records.update(recExist._id, {
+            $addToSet: { upvoters: user._id },
+            $inc: { "disco.votes": 1 }
         });
     },
     insertComment: function (cmtAttributes) {
@@ -81,19 +95,19 @@ records.allow({
     /*insert: function (userId, doc) {
         // only allow posting if you are logged in
         return !!userId;
-    },*/
+    },
     update: function (userId, doc) {
         return !!userId;
-    }/*,
+    },
     remove: function (userId, doc) {
         return !!userId;
     }*/
 });
 comments.allow({
-    insert: function (userId, doc) {
+    /*insert: function (userId, doc) {
         // only allow posting if you are logged in
         return !!userId;
-    }
+    }*/
 });
 var requireLogin = function (pause) {
     if (!Meteor.user()) {
@@ -127,7 +141,7 @@ Router.onBeforeAction(requireLogin, {
 
 ListaController = RouteController.extend({
     template: 'Lista',
-    pageIncrement: 3,
+    pageIncrement: 10,
     limit: function() {
         return parseInt(this.params.recs) || this.pageIncrement;
     },
@@ -270,7 +284,10 @@ if (Meteor.isClient) {
         'click .plusBtn': function (event, template) {
             event.preventDefault();
             var $btn = $(event.target);
-            records.update({
+            Meteor.call('voteRec', $btn.data('id'), function(err) {
+                if (err) console.log(err);
+            });
+            /*records.update({
                 _id: $btn.data('id')
             }, {
                 $inc: {
@@ -278,7 +295,7 @@ if (Meteor.isClient) {
                 }
             }, function (err, res) {
                 if (err) console.log(err);
-            });
+            });*/
             return false;
         },
         'click .cancellaBtn': function (event, template) {
@@ -309,15 +326,22 @@ if (Meteor.isClient) {
             return false;
         }
     });   
-    /*Template.Lista.helpers({ // eliminato perchè spostato nella route per la paginazione
-        records: function () {
+    Template.Lista.helpers({
+        /*records: function () { // eliminato perchè spostato nella route per la paginazione
             return records.find({}, {
                 sort: {
                     "autore.nome": 1
                 }
             });
+        }*/
+        nonVotato: function (voters, id) {
+            ///console.log(_.indexOf(voters, id));
+            //console.log(_.indexOf(voters, id));
+            //console.log(_.indexOf(voters, id));
+            if (_.indexOf(voters, Meteor.user()._id)==-1)
+                 return new Spacebars.SafeString(' - <a class="btn btn-small plusBtn" href="/vota-disco/' + id + '" data-id="' + id + '"     role="button">Like</a>');
         }
-    });*/
+    });
     Template.Voted.helpers({
         records: function () {
             return records.find({}, {
@@ -332,7 +356,7 @@ if (Meteor.isClient) {
         comments: function () {
             return comments.find({record: this._id}, {
                 sort: {
-                    data: -1
+                    submitted: -1
                 }
             });
         }

@@ -80,3 +80,7 @@ aside {
     font-size:  11px;
     text-align:  right;
 }
+.load-more {
+    margin: 25px auto;
+    display:  inline-block; 
+}

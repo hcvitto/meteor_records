@@ -100,7 +100,7 @@
         <li>
             <strong>Autore:</strong> <a href="{{autore.sito}}">{{autore.nome}}</a>
             <br>
-            <strong>Titolo:</strong> {{disco.titolo}} {{#if disco.anno}}({{disco.anno}}){{/if}} {{#if disco.votes}}<strong>Voti:</strong> {{disco.votes}}{{/if}} - <a class="btn btn-small plusBtn" href="/vota-disco/{{_id}}" data-id="{{_id}}" role="button">Like</a>
+            <strong>Titolo:</strong> {{disco.titolo}} {{#if disco.anno}}({{disco.anno}}){{/if}} {{#if disco.votes}}<strong>Voti:</strong> {{disco.votes}}{{/if}} {{nonVotato upvoters _id}}
             <br>
             <strong>Genere:</strong> {{disco.genere}}
             <br>
@@ -111,11 +111,12 @@
             <a class="btn btn-small modificaBtn" href="{{pathFor 'InserisciDisco'}}" role="button">Modifica</a>
             {{/if}}
             <a class="btn btn-small commentaBtn" href="{{pathFor 'commenti'}}" role="button">Commenti</a>
+            
         </li>
         {{/each}}
     </ul>
     {{#if nextPath}}
-      <a class="load-more" href="{{nextPath}}">Load more</a>
+      <a class="btn btn-small load-more" href="{{nextPath}}">Load more</a>
     {{/if}}
     {{#contentFor "footer"}} Lista footer {{/contentFor}}
 </template>
