@@ -59,15 +59,18 @@ Meteor.methods({
         });
     },
     voteRec: function(id) {
-        var user = Meteor.user(),
-            recExist = records.findOne(id);
+        var user = Meteor.user();
         if (!user)
             throw new Meteor.Error(401, "Non sei loggato");
+        /*var recExist = records.findOne(id);
         if (!recExist)
-            throw new Meteor.Error(401, "Non esiste");
+            throw new Meteor.Error(401, "Non esiste il record");
         if (_.include(recExist.upvoters, user._id))
-            throw new Meteor.Error(422, 'Already upvoted this post');
-        records.update(recExist._id, {
+            throw new Meteor.Error(422, 'Already upvoted this post');*/
+        records.update({
+            _id: id,
+            upvoters: {$ne: user._id}
+        }, {
             $addToSet: { upvoters: user._id },
             $inc: { "disco.votes": 1 }
         });
@@ -91,8 +94,8 @@ Meteor.methods({
     }
 });
 
-records.allow({
-    /*insert: function (userId, doc) {
+/*records.allow({
+    insert: function (userId, doc) {
         // only allow posting if you are logged in
         return !!userId;
     },
@@ -101,14 +104,14 @@ records.allow({
     },
     remove: function (userId, doc) {
         return !!userId;
-    }*/
+    }
 });
 comments.allow({
-    /*insert: function (userId, doc) {
+    insert: function (userId, doc) {
         // only allow posting if you are logged in
         return !!userId;
-    }*/
-});
+    }
+});*/
 var requireLogin = function (pause) {
     if (!Meteor.user()) {
         if (Meteor.loggingIn()) {
@@ -126,7 +129,7 @@ Router.configure({
     layoutTemplate: 'ApplicationLayout',
     loadingTemplate: 'Loading'/*,
     waitOn: function () {
-        return Meteor.subscribe('records'); // la spostiamo nella route per la paginazione
+        return Meteor.subscribe('voted'); // la spostiamo nella route per la paginazione
     }*/
 });
 
@@ -149,7 +152,7 @@ ListaController = RouteController.extend({
         return {sort: {submitted: -1}, limit: this.limit()};
     },
     waitOn: function() {
-        return Meteor.subscribe('records', this.findOptions());
+        return Meteor.subscribe('records', {}, this.findOptions());
     },
     records: function() {
         return records.find({}, this.findOptions());
@@ -195,36 +198,49 @@ Router.route('/lista/:recs?', {
 });
 
 Router.route('/commenti/:_id', function () {
-    if (!this.params._id) {
-        Flash.warning('top', 'Record non esistente', 5000);
-    } else {
-        var record = records.findOne({ _id: this.params._id });
-    }
+    var record = records.findOne(this.params._id);
+    //console.log(record);
+    if (!record) Flash.warning('top', 'Questo record non esiste', 5000);
     this.render('Commenti', {
         data: record
     });
 }, {
     name: 'commenti',
     waitOn: function() {
-        return Meteor.subscribe('comments', this.params._id);
+        Meteor.subscribe('records', this.params._id);
+        Meteor.subscribe('comments');
+    }
+});
+
+Router.route('/userComments/:autore', function () {
+    var userComments = comments.find({ autore: this.params.autore });
+    this.render('userComments', {
+        data: function() {
+            return {
+                autore: this.params.autore,
+                userComments: userComments
+            }
+        }
+    });
+}, {
+    name: 'userComments',
+    waitOn: function() {
+        Meteor.subscribe('comments');
     }
 });
 
 Router.route('/inserisci-disco/:_id?', function () {
-    if (this.params._id) {
+    if (this.params._id)
         var record = records.findOne(this.params._id);
-    } else {
-        var record = '';
-    }
+    //if (!record) Flash.warning('top', 'Questo record non esiste', 5000);
     this.render('InserisciDisco', {
         data: record
     });
-    /*this.render('Aside', {
-        to: 'aside inserisci'
-    });*/
 }, {
     name: 'InserisciDisco',
-    disableProgress: true
+    waitOn: function() {
+        Meteor.subscribe('records', this.params._id);
+    }
 });
 
 UI.registerHelper('formatTime', function(context, options) {
@@ -233,16 +249,9 @@ UI.registerHelper('formatTime', function(context, options) {
 });
 
 if (Meteor.isClient) {
-    Meteor.subscribe('records');
-    //Meteor.subscribe('comments'); la sposto nella route
+    //Meteor.subscribe('records');
+    //Meteor.subscribe('comments'); // la sposto nella route
     
-    /*Errors = new Meteor.Collection(null);
-    throwError = function(message) {
-        Errors.insert({message: message, seen: true})
-    }
-    clearErrors = function() {
-        Errors.remove({seen: true})
-    }*/
     Template.InserisciDisco.events({
         'submit form': function (event, template) {
             event.preventDefault();
@@ -283,19 +292,9 @@ if (Meteor.isClient) {
     Template.Lista.events({
         'click .plusBtn': function (event, template) {
             event.preventDefault();
-            var $btn = $(event.target);
-            Meteor.call('voteRec', $btn.data('id'), function(err) {
+            Meteor.call('voteRec', this._id, function(err) {
                 if (err) console.log(err);
             });
-            /*records.update({
-                _id: $btn.data('id')
-            }, {
-                $inc: {
-                    "disco.votes": 1
-                }
-            }, function (err, res) {
-                if (err) console.log(err);
-            });*/
             return false;
         },
         'click .cancellaBtn': function (event, template) {
@@ -344,28 +343,28 @@ if (Meteor.isClient) {
     });
     Template.Voted.helpers({
         records: function () {
-            return records.find({}, {
-                sort: {
-                    "disco.votes": -1
-                },
-                limit: 2
-            });
+            Meteor.subscribe('records', {}, { sort: { "disco.votes": -1 }, limit: 2 });
+            return records.find({}, { sort: { "disco.votes": -1 }, limit: 2 });
         }
     });
     Template.Commenti.helpers({
         comments: function () {
-            return comments.find({record: this._id}, {
+            return comments.find({ record: this._id }, {
                 sort: {
                     submitted: -1
                 }
             });
         }
-    }); 
-    /*Template.Commento.helpers({
-        dataUmana: function() {
-            return moment(this.data).format('MM/DD/YYYY, HH:MM');
+    });
+    /*Template.userComments.helpers({
+        userComments: function () {
+            return comments.find({ userId: this.userId }, {
+                sort: {
+                    submitted: -1
+                }
+            });
         }
-    }); */    
+    });*/
     Accounts.ui.config({
         passwordSignupFields: 'USERNAME_ONLY'
     });
@@ -375,8 +374,8 @@ if (Meteor.isServer) {
     Meteor.startup(function () {
         // code to run on server at startup
     });
-    Meteor.publish('records', function (options) {
-        return records.find({}, options);
+    Meteor.publish('records', function (id, options) {
+        return records.find(id, options);
     });
     Meteor.publish('comments', function () {
         return comments.find();

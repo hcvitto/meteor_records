@@ -137,12 +137,24 @@
     
     {{#contentFor "footer"}} Commenti footer {{/contentFor}}
 </template>
+
+<template name="userComments">
+    <h5>Commenti per:</h5>
+    <h4>{{autore}}</h4>
+    <ul class="commentiList">
+    {{#each userComments}}
+        {{> Commento}}
+    {{/each}}
+    </ul>
+</template>
+
 <template name="Commento">
     <li>
-        <strong><a href="user/{{_idAutore}}">{{autore}}</a></strong>: {{testo}}
+        <strong><a href="/userComments/{{autore}}">{{autore}}</a></strong>: {{testo}}
         <div><em>on</em> {{formatTime data}}</div>
     </li>
 </template>
+
 <template name="InserisciCommento">
     <form action="/salva-commento" method="POST" id="commentoForm">
         <input type="hidden" name="id" id="id" value="{{_id}}">
@@ -156,6 +168,7 @@
         <button type="submit" class="btn btn-default">Submit</button>
     </form>
 </template>
+
 <template name="Salva-disco">
     Salva disco
 </template>
