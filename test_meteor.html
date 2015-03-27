@@ -98,7 +98,7 @@
     <ul class="dischiList">
         {{#each records}}
         <li>
-            <strong>Autore:</strong> <a href="{{autore.sito}}">{{autore.nome}}</a>
+            <strong>Autore:</strong> <a href="/lista-per-autore/{{autore.nome}}">{{autore.nome}}</a> {{#if autore.sito}}<a href="{{autore.sito}}">(website)</a>{{/if}}
             <br>
             <strong>Titolo:</strong> {{disco.titolo}} {{#if disco.anno}}({{disco.anno}}){{/if}} {{#if disco.votes}}<strong>Voti:</strong> {{disco.votes}}{{/if}} {{nonVotato}}
             <br>
@@ -121,9 +121,29 @@
     {{#contentFor "footer"}} Lista footer {{/contentFor}}
 </template>
 
+<template name="ListaPerAutore">
+    <h5>Lista dischi di:</h5>
+    <h4>{{autore}} {{#if autore.sito}} - <a href="{{autore.sito}}">(website)</a>{{/if}}</h4>
+    <ul class="dischiList">
+        {{#each records}}
+        <li>
+            <strong>Titolo:</strong> {{disco.titolo}}
+            <br>
+            <strong>Anno:</strong> {{disco.anno}}
+            <br>
+            <strong>Genere:</strong> {{disco.genere}}
+            <br>
+            <strong>Label:</strong> {{label.nome}}{{#if label.sito}}<a href="{{label.sito}}">(website)</a>{{/if}}
+            <br>
+            <a class="btn btn-small commentaBtn" href="{{pathFor 'commenti'}}" role="button">Commenti</a>
+        </li>
+        {{/each}}
+    </ul>
+</template>
+
 <template name="Commenti">
     <h5>Commenti per:</h5>
-    <h4>{{autore.nome}} - {{disco.titolo}}</h4>
+    <h4>{{disco.titolo}} (<a href="{{pathFor 'listaPerAutore' autore=autore.nome}}">{{autore.nome}}</a>)</h4>
     <ul class="commentiList">
     {{#each comments}}
         {{> Commento}}
@@ -139,11 +159,14 @@
 </template>
 
 <template name="userComments">
-    <h5>Commenti per:</h5>
+    <h5>Commenti di: </h5>
     <h4>{{autore}}</h4>
     <ul class="commentiList">
     {{#each userComments}}
-        {{> Commento}}
+        <li>
+        <strong><a href="/userComments/{{autore}}">{{autore}}</a></strong>: {{testo}}
+        <div><em>about</em> <a href="{{pathFor 'commenti' _id=record}}">{{recordName record}}</a>  - <em>on</em> {{formatTime data}}</div>
+    </li>
     {{/each}}
     </ul>
 </template>
